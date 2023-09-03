@@ -3,10 +3,10 @@ import routes from './routes/index';
 
 // Create an instance of the Express application
 const app = express();
-
-// Define the port for the server to listen on, using either the environment
-// variable PORT or 5000 as the default
 const port = process.env.PORT || 5000;
+
+// Middleware to parse JSON requests
+app.use(express.json());
 
 // Use the routes defined in 'routes/index.js' for handling incoming requests
 app.use('/', routes);

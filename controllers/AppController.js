@@ -1,41 +1,41 @@
-import dbClient from '../utils/db';
+import dbclient from '../utils/db';
 import redisClient from '../utils/redis';
 
-// Controller class for handling application requests
-class AppController {
+const AppController = {
   /**
-   * Get the status of the application including the status of Redis and MongoDB.
-   * @param {Request} req - The HTTP request object.
-   * @param {Response} res - The HTTP response object.
+   * Get the status of Redis and the database.
+   * @param {object} req - Express request object.
+   * @param {object} res - Express response object.
    */
-  static async getStatus(req, res) {
-    // Check the status of Redis and MongoDB clients
-    const redisStatus = redisClient.isAlive();
-    const dbStatus = dbClient.isAlive();
+  getStatus: async (req, res) => {
+    try {
+      const redisStatus = redisClient.isAlive();
+      const dbStatus = dbclient.isAlive();
 
-    // Respond with a JSON object indicating the status
-    if (redisStatus && dbStatus) {
-      res.writeHead(200, { 'Content-Type': 'text/plain' });
-      res.end('{ "redis": true, "db": true }');
-    } else {
-      res.end();
+      res.status(200).json({ redis: redisStatus, db: dbStatus });
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ error: 'Internal Server Error' });
     }
-  }
+  },
 
   /**
-   * Get statistics about the application including the number of users and files in the database.
-   * @param {Request} req - The HTTP request object.
-   * @param {Response} res - The HTTP response object.
+   * Get statistics about users and files in the database.
+   * @param {object} req - Express request object.
+   * @param {object} res - Express response object.
    */
-  static async getStats(req, res) {
-    // Retrieve the number of users and files from the database
-    const users = await dbClient.nbUsers();
-    const files = await dbClient.nbFiles();
+  getStats: async (req, res) => {
+    try {
+      // Use the provided methods from db.js to count users and files
+      const userCount = await dbclient.nbUsers();
+      const fileCount = await dbclient.nbFiles();
 
-    // Respond with a JSON object containing the statistics
-    res.writeHead(200, { 'Content-Type': 'text/plain' });
-    res.end(`{ "users": ${users}, "files": ${files} }`);
-  }
-}
+      res.status(200).json({ users: userCount, files: fileCount });
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ error: 'Internal Server Error' });
+    }
+  },
+};
 
 export default AppController;
