@@ -8,21 +8,10 @@ class RedisClient {
     this.client.on('error', (error) => {
       console.log('Redis Client Error:', error);
     });
-
-    // Initialize a promise that resolves when Redis is ready
-    this.isAlivePromise = new Promise((resolve) => {
-      this.client.on('ready', () => {
-        resolve();
-      });
-      this.client.on('error', () => {
-        resolve();
-      });
-    });
   }
 
   // Check if the Redis connection is alive
-  async isAlive() {
-    await this.isAlivePromise;
+  isAlive() {
     return this.client.connected;
   }
 
