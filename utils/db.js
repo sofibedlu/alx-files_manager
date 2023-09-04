@@ -47,6 +47,15 @@ class DBClient {
   async nbFiles() {
     return this.client.db().collection('files').countDocuments();
   }
+
+  /**
+   * Insert a new user into the 'users' collection.
+   * @param {Object} user - The user object to insert.
+   * @returns {Promise} A Promise that resolves when the user is successfully inserted.
+   */
+  async insertUser(user) {
+    return this.client.db().collection('users').insertOne(user);
+  }
 }
 
 // Create and export an instance of DBClient
