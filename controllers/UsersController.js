@@ -36,8 +36,8 @@ const UsersController = {
 
       // Return the newly created user with only the email and id
       const createdUser = {
+        id: result.insertedId,
         email,
-        _id: result.insertedId,
       };
 
       res.status(201).json(createdUser);
