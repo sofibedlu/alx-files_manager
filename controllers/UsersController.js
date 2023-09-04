@@ -1,5 +1,7 @@
 import crypto from 'crypto';
+import { ObjectId } from 'mongodb';
 import dbclient from '../utils/db';
+import redisClient from '../utils/redis';
 
 const UsersController = {
   postNew: async (req, res) => {
@@ -41,6 +43,44 @@ const UsersController = {
       };
 
       res.status(201).json(createdUser);
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ error: 'Internal Server Error' });
+    }
+    // Add a default return statement here to satisfy ESLint
+    return null;
+  },
+
+  getMe: async (req, res) => {
+    try {
+      // Extract the X-Token header
+      const authToken = req.header('X-Token');
+
+      if (!authToken) {
+        return res.status(401).json({ error: 'Unauthorized' });
+      }
+
+      // Retrieve the user's ID from Redis using the token
+      const redisKey = `auth_${authToken}`;
+      const userId = await redisClient.get(redisKey);
+
+      if (!userId) {
+        return res.status(401).json({ error: 'Unauthorized' });
+      }
+
+      // Create an ObjectId from the userId string
+      const objectIdUserId = new ObjectId(userId);
+
+      // Find the user in the database by ID
+      const user = await dbclient.client.db().collection('users').findOne({ _id: objectIdUserId });
+
+      if (!user) {
+        return res.status(401).json({ error: 'Unauthorized' });
+      }
+
+      // Return the user object with email and id only
+      const { email, _id } = user;
+      res.status(200).json({ id: _id, email });
     } catch (error) {
       console.error(error);
       res.status(500).json({ error: 'Internal Server Error' });
