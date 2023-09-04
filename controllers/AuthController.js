@@ -62,8 +62,7 @@ const AuthController = {
       const userId = await redisClient.get(redisKey);
 
       if (!userId) {
-        // If no user ID is found, return a successful response with status code 204 (No Content)
-        return res.status(204).send();
+        return res.status(401).json({ error: 'Unauthorized' });
       }
 
       // Delete the token from Redis
