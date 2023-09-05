@@ -117,6 +117,122 @@ const FilesController = {
     // Add a default return statement here to satisfy ESLint
     return null;
   },
+
+  getShow: async (req, res) => {
+    try {
+      // Extract the X-Token header
+      const authToken = req.header('X-Token');
+
+      if (!authToken) {
+        return res.status(401).json({ error: 'Unauthorized' });
+      }
+
+      // Retrieve the user's ID from Redis using the token
+      const redisKey = `auth_${authToken}`;
+      const userId = await redisClient.get(redisKey);
+
+      if (!userId) {
+        return res.status(401).json({ error: 'Unauthorized' });
+      }
+
+      // Extract the file ID from the route parameter
+      const fileId = req.params.id;
+
+      // Retrieve the file document based on the user's ID and the file ID
+      const ObjectIdId = new ObjectId(fileId);
+      const ObjectIdUserId = new ObjectId(userId);
+      const file = await dbclient.client.db().collection('files')
+        .findOne({ _id: ObjectIdId, userId: ObjectIdUserId });
+
+      if (!file) {
+        return res.status(404).json({ error: 'Not found' });
+      }
+
+      // Convert the document the 'file' to the desired format
+      const formattedFile = {
+        id: file._id, // Rename _id to id
+        userId: file.userId,
+        name: file.name,
+        type: file.type,
+        isPublic: file.isPublic,
+        parentId: file.parentId,
+      };
+
+      // Return the file document
+      res.status(200).json(formattedFile);
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ error: 'Internal Server Error' });
+    }
+    // Add a default return statement here to satisfy ESLint
+    return null;
+  },
+
+  getIndex: async (req, res) => {
+    try {
+      // Extract the X-Token header
+      const authToken = req.header('X-Token');
+
+      if (!authToken) {
+        return res.status(401).json({ error: 'Unauthorized' });
+      }
+
+      // Retrieve the user's ID from Redis using the token
+      const redisKey = `auth_${authToken}`;
+      const userId = await redisClient.get(redisKey);
+
+      if (!userId) {
+        return res.status(401).json({ error: 'Unauthorized' });
+      }
+
+      // Extract query parameters for pagination
+      const { parentId = 0, page = 0 } = req.query;
+      const itemsPerPage = 20;
+      const skip = parseInt(page, 10) * itemsPerPage;
+
+      // Retrieve the list of file documents based on the user's ID and parentId with pagination
+      const ObjectIdParentId = parentId !== 0 ? new ObjectId(parentId) : 0;
+      const ObjectIdUserId = new ObjectId(userId);
+
+      // Create the aggregation pipeline
+      const pipeline = [
+        { $match: { userId: ObjectIdUserId } }, // Match documents by userId
+
+        // Conditionally include the $match stage for parentId when it's not equal to 0
+        parentId !== 0
+          ? { $match: { parentId: ObjectIdParentId } }
+          : { $match: {} },
+
+        { $skip: skip }, // Skip documents for pagination
+        { $limit: itemsPerPage }, // Limit the number of documents per page
+      ];
+
+      // Perform the aggregation
+      const files = await dbclient.client
+        .db()
+        .collection('files')
+        .aggregate(pipeline)
+        .toArray();
+
+      // Convert the documents in the 'files' array to the desired format
+      const formattedFiles = files.map((file) => ({
+        id: file._id, // Rename _id to id
+        userId: file.userId,
+        name: file.name,
+        type: file.type,
+        isPublic: file.isPublic,
+        parentId: file.parentId,
+      }));
+
+      // Return the list of file documents
+      res.status(200).json(formattedFiles);
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ error: 'Internal Server Error' });
+    }
+    // Add a default return statement here to satisfy ESLint
+    return null;
+  },
 };
 
 export default FilesController;
