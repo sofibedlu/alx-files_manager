@@ -139,10 +139,10 @@ const FilesController = {
       const fileId = req.params.id;
 
       // Retrieve the file document based on the user's ID and the file ID
-      const ObjectIdId = new ObjectId(fileId);
+      const ObjectFileId = new ObjectId(fileId);
       const ObjectIdUserId = new ObjectId(userId);
       const file = await dbclient.client.db().collection('files')
-        .findOne({ _id: ObjectIdId, userId: ObjectIdUserId });
+        .findOne({ _id: ObjectFileId, userId: ObjectIdUserId });
 
       if (!file) {
         return res.status(404).json({ error: 'Not found' });
@@ -226,6 +226,114 @@ const FilesController = {
 
       // Return the list of file documents
       res.status(200).json(formattedFiles);
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ error: 'Internal Server Error' });
+    }
+    // Add a default return statement here to satisfy ESLint
+    return null;
+  },
+
+  putPublish: async (req, res) => {
+    try {
+      // Extract the X-Token header
+      const authToken = req.header('X-Token');
+
+      if (!authToken) {
+        return res.status(401).json({ error: 'Unauthorized' });
+      }
+
+      // Retrieve the user's ID from Redis using the token
+      const redisKey = `auth_${authToken}`;
+      const userId = await redisClient.get(redisKey);
+
+      if (!userId) {
+        return res.status(401).json({ error: 'Unauthorized' });
+      }
+      // Extract the file ID from the route parameter
+      const fileId = req.params.id;
+
+      // Retrieve the file document based on the user's ID and the file ID and update the value
+      const ObjectIdFileId = new ObjectId(fileId);
+      const ObjectIdUserId = new ObjectId(userId);
+      const updatedFile = await dbclient.client.db().collection('files')
+        .findOneAndUpdate(
+          { _id: ObjectIdFileId, userId: ObjectIdUserId },
+          { $set: { isPublic: true } },
+          { returnOriginal: false }, // Return the updated document
+        );
+
+      if (!updatedFile.value) {
+        return res.status(404).json({ error: 'Not found' });
+      }
+
+      // Rename the _id field to id in the response with formatted..
+      const formattedFile = {
+        id: updatedFile.value._id,
+        userId: updatedFile.value.userId,
+        name: updatedFile.value.name,
+        type: updatedFile.value.type,
+        isPublic: updatedFile.value.isPublic,
+        parentId: updatedFile.value.parentId,
+      };
+
+      // Return the updated file document with the desired format
+      res.status(200).json(formattedFile);
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ error: 'Internal Server Error' });
+    }
+    // Add a default return statement here to satisfy ESLint
+    return null;
+  },
+
+  putUnpublish: async (req, res) => {
+    try {
+      // Extract the X-Token header
+      const authToken = req.header('X-Token');
+
+      if (!authToken) {
+        return res.status(401).json({ error: 'Unauthorized' });
+      }
+
+      // Retrieve the user's ID from Redis using the token
+      const redisKey = `auth_${authToken}`;
+      const userId = await redisClient.get(redisKey);
+
+      if (!userId) {
+        return res.status(401).json({ error: 'Unauthorized' });
+      }
+
+      // Extract the file ID from the route parameter
+      const fileId = req.params.id;
+
+      // Retrieve the file document based on the user's ID and the file ID and update it
+      const ObjectIdFileId = new ObjectId(fileId);
+      const ObjectIdUserId = new ObjectId(userId);
+
+      const updatedFile = await dbclient.client.db().collection('files')
+        .findOneAndUpdate(
+          { _id: ObjectIdFileId, userId: ObjectIdUserId },
+          { $set: { isPublic: false } },
+          { returnOriginal: false }, // Return the updated document
+        );
+
+      if (!updatedFile.value) {
+        return res.status(404).json({ error: 'Not found' });
+      }
+
+      // Rename the _id field to id in the response reformat the return
+      const formattedFile = {
+        id: updatedFile.value._id,
+        userId: updatedFile.value.userId,
+        name: updatedFile.value.name,
+        type: updatedFile.value.type,
+        isPublic: updatedFile.value.isPublic,
+        parentId: updatedFile.value.parentId,
+      };
+
+      // Return the updated file document with the desired format
+      res.status(200).json(formattedFile);
     } catch (error) {
       console.error(error);
       res.status(500).json({ error: 'Internal Server Error' });
