@@ -2,6 +2,7 @@ import { v4 as uuidv4 } from 'uuid';
 import fs from 'fs';
 import path from 'path';
 import { ObjectId } from 'mongodb';
+import mime from 'mime-types';
 import dbclient from '../utils/db';
 import redisClient from '../utils/redis';
 
@@ -337,6 +338,60 @@ const FilesController = {
     } catch (error) {
       console.error(error);
       res.status(500).json({ error: 'Internal Server Error' });
+    }
+    // Add a default return statement here to satisfy ESLint
+    return null;
+  },
+
+  getFile: async (req, res) => {
+    // Extract the file ID from the route parameter
+    const fileId = req.params.id;
+
+    try {
+      // Check if a file document exists with the given ID
+      const file = await dbclient.client.db().collection('files').findOne({
+        _id: ObjectId(fileId),
+      });
+
+      if (!file) {
+        return res.status(404).json({ error: 'File not found' });
+      }
+
+      // Extract the X-Token header
+      const authToken = req.header('X-Token');
+      // Retrieve the user's ID from Redis using the token
+      const redisKey = `auth_${authToken}`;
+      const userId = await redisClient.get(redisKey);
+
+      // Check if the file is public or the user is the owner
+      const isUserAuthorized = file.isPublic || (userId && file.userId.toString()
+                === userId.toString());
+
+      if (!isUserAuthorized) {
+        return res.status(404).json({ error: 'File not found' });
+      }
+
+      // Check if the file is not a folder
+      if (file.type === 'folder') {
+        return res.status(400).json({ error: 'A folder doesn\'t have content' });
+      }
+
+      // Determine the file's MIME type based on its name
+      const mimeType = mime.lookup(file.name);
+
+      // Check if the file exists locally
+      const filePath = file.localPath;
+      if (!fs.existsSync(filePath)) {
+        return res.status(404).json({ error: 'File not found' });
+      }
+
+      // Read the file and send it as a response with the appropriate MIME type
+      const fileStream = fs.createReadStream(filePath);
+      res.setHeader('Content-Type', mimeType);
+      fileStream.pipe(res);
+    } catch (error) {
+      console.error('Error:', error);
+      return res.status(500).json({ error: 'Internal server error' });
     }
     // Add a default return statement here to satisfy ESLint
     return null;

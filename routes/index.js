@@ -31,5 +31,7 @@ router.put('/files/:id/publish', FilesController.putPublish);
 
 router.put('/files/:id/unpublish', FilesController.putUnpublish);
 
+router.get('/files/:id/data', FilesController.getFile);
+
 // Export the router for use in other parts of your application
 export default router;
