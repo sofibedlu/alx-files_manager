@@ -373,20 +373,22 @@ const FilesController = {
 
       // Check if the file is not a folder
       if (file.type === 'folder') {
-        return res.status(400).json({ error: 'A folder doesn\'t have content' });
+        return res.status(400).json({ error: "A folder doesn't have content" });
+      }
+
+      // Get the local path of the file
+      const { localPath } = file;
+
+      // Check if the file is locally present
+      if (!localPath || !fs.existsSync(localPath)) {
+        return res.status(404).json({ error: 'Not found' });
       }
 
       // Determine the file's MIME type based on its name
       const mimeType = mime.lookup(file.name);
 
-      // Check if the file exists locally
-      const filePath = file.localPath;
-      if (!fs.existsSync(filePath)) {
-        return res.status(404).json({ error: 'File not found' });
-      }
-
       // Read the file and send it as a response with the appropriate MIME type
-      const fileStream = fs.createReadStream(filePath);
+      const fileStream = fs.createReadStream(localPath);
       res.setHeader('Content-Type', mimeType);
       fileStream.pipe(res);
     } catch (error) {
