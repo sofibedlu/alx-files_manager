@@ -9,11 +9,11 @@ const { ObjectId } = require('mongodb');
 
 // Create a Bull queue instance
 const fileQueue = new Bull('thumbnailQueue');
+const userQueue = new Bull('email send');
 
 // Process the queue
 fileQueue.process(async (job, done) => {
   try {
-    console.log('Starting thumbnail generation...');
     const { userId, fileId } = job.data;
 
     if (!fileId) {
@@ -29,6 +29,9 @@ fileQueue.process(async (job, done) => {
       .collection('files')
       .findOne({ _id: ObjectId(fileId), userId: new ObjectId(userId) });
 
+    if (!fileDocument) {
+      throw new Error('File not found');
+    }
     const { localPath } = fileDocument;
 
     // Read the file
@@ -46,6 +49,34 @@ fileQueue.process(async (job, done) => {
       // Save the thumbnail to a file
       fs.writeFileSync(thumbnailPath, thumb);
     }
+
+    // Indicate that the job is done
+    done();
+  } catch (error) {
+    // Handle errors here and pass them to done() to indicate failure
+    done(error);
+  }
+});
+
+userQueue.process(async (job, done) => {
+  try {
+    const { userId } = job.data;
+
+    if (!userId) {
+      throw new Error('Missing userId');
+    }
+
+    // Check if the user exist in the database based on userId
+    const user = await dbclient.client
+      .db()
+      .collection('users')
+      .findOne({ _id: new ObjectId(userId) });
+
+    if (!user) {
+      throw new Error('User not found');
+    }
+    // Send a welcome email
+    console.log(`Welcome ${user.email}!`);
 
     // Indicate that the job is done
     done();

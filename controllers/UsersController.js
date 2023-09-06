@@ -1,7 +1,10 @@
 import crypto from 'crypto';
 import { ObjectId } from 'mongodb';
+import Bull from 'bull';
 import dbclient from '../utils/db';
 import redisClient from '../utils/redis';
+
+const userQueue = new Bull('email send');
 
 const UsersController = {
   postNew: async (req, res) => {
@@ -41,6 +44,9 @@ const UsersController = {
         id: result.insertedId,
         email,
       };
+
+      // add a job to the queue when a new user is stored in DB
+      userQueue.add({ userId: createdUser.id });
 
       res.status(201).json(createdUser);
     } catch (error) {
