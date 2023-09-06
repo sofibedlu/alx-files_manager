@@ -3,10 +3,12 @@ import fs from 'fs';
 import path from 'path';
 import { ObjectId } from 'mongodb';
 import mime from 'mime-types';
+import Bull from 'bull';
 import dbclient from '../utils/db';
 import redisClient from '../utils/redis';
 
 const FOLDER_PATH = process.env.FOLDER_PATH || '/tmp/files_manager';
+const fileQueue = new Bull('thumbnailQueue');
 
 const FilesController = {
   postUpload: async (req, res) => {
@@ -110,6 +112,13 @@ const FilesController = {
         isPublic: result.ops[0].isPublic,
         parentId: result.ops[0].parentId,
       };
+
+      // Add a job to the queue for generating thumbnails if the file is an image
+      if (type === 'image') {
+        const fileId = result.ops[0]._id;
+        fileQueue.add({ userId, fileId });
+      }
+
       res.status(201).json(insertedFile);
     } catch (error) {
       console.error(error);
@@ -346,6 +355,7 @@ const FilesController = {
   getFile: async (req, res) => {
     // Extract the file ID from the route parameter
     const fileId = req.params.id;
+    const { size } = req.query;
 
     try {
       // Check if a file document exists with the given ID
@@ -377,10 +387,15 @@ const FilesController = {
       }
 
       // Get the local path of the file
-      const { localPath } = file;
+      let { localPath } = file;
+
+      // Update localPath if size is provided and valid
+      if (size && ['500', '250', '100'].includes(size)) {
+        localPath = `${localPath}_${size}`;
+      }
 
       // Check if the file is locally present
-      if (!localPath || !fs.existsSync(localPath)) {
+      if (!fs.existsSync(localPath)) {
         return res.status(404).json({ error: 'Not found' });
       }
 
