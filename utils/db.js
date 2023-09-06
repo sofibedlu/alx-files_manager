@@ -1,10 +1,10 @@
 import mongodb from 'mongodb';
 
-// DBClient class for MongoDB operations
+// DBClient class for MongoDB operation
 class DBClient {
   /**
    * Constructor for the DBClient class.
-   * Initializes a connection to the MongoDB server based on environment variables.
+   * Initializes a connection to the MongoDB server based on environment variable.
    */
   constructor() {
     const host = process.env.DB_HOST || 'localhost';
