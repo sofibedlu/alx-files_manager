@@ -41,7 +41,7 @@ const FilesController = {
       // Check for missing type or invalid type
       const acceptedTypes = ['folder', 'file', 'image'];
       if (!type || !acceptedTypes.includes(type)) {
-        return res.status(400).json({ error: 'Missing or invalid type' });
+        return res.status(400).json({ error: 'Missing type' });
       }
 
       // Check for missing data if type is not 'folder'
