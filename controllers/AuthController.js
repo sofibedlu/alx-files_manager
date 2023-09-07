@@ -44,7 +44,7 @@ const AuthController = {
         res.status(200).json({ token });
       } catch (decodeError) {
         // Handle invalid Base64 content
-        return res.status(400).json({ error: 'Invalid base64 encoding' });
+        return res.status(400).json({ error: 'Unauthorized' });
       }
     } catch (error) {
       console.error(error);
