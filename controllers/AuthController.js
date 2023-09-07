@@ -2,6 +2,7 @@ import crypto from 'crypto';
 import { v4 as uuidv4 } from 'uuid';
 import redisClient from '../utils/redis';
 import dbclient from '../utils/db';
+import isValidbase64 from '../utils/auth';
 
 const AuthController = {
   getConnect: async (req, res) => {
@@ -15,6 +16,9 @@ const AuthController = {
 
       // Extract and decode the base64 credentials
       const base64Credentials = authHeader.split(' ')[1];
+      if (!isValidbase64(base64Credentials)) {
+        return res.status(401).json({ error: 'Unauthorized' });
+      }
       const credentials = Buffer.from(base64Credentials, 'base64').toString('utf-8');
       const [email, password] = credentials.split(':');
 
