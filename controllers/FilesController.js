@@ -364,7 +364,7 @@ const FilesController = {
       });
 
       if (!file) {
-        return res.status(404).json({ error: 'File not found' });
+        return res.status(404).json({ error: 'Not found' });
       }
 
       // Extract the X-Token header
@@ -378,7 +378,7 @@ const FilesController = {
                 === userId.toString());
 
       if (!isUserAuthorized) {
-        return res.status(404).json({ error: 'File not found' });
+        return res.status(404).json({ error: 'Not found' });
       }
 
       // Check if the file is not a folder
@@ -407,7 +407,6 @@ const FilesController = {
       res.setHeader('Content-Type', mimeType);
       fileStream.pipe(res);
     } catch (error) {
-      console.error('Error:', error);
       return res.status(500).json({ error: 'Internal server error' });
     }
     // Add a default return statement here to satisfy ESLint
